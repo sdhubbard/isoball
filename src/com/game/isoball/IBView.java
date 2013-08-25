@@ -13,6 +13,8 @@ import android.os.Message;
 import android.util.AttributeSet;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
+import android.view.ScaleGestureDetector.OnScaleGestureListener;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -31,7 +33,8 @@ import com.game.isoball.util.NativePhysicsUtil;
  */
 public class IBView extends SurfaceView implements SurfaceHolder.Callback,
         View.OnTouchListener,
-        GestureDetector.OnGestureListener {
+        GestureDetector.OnGestureListener,
+        OnScaleGestureListener {
 /*    private int[][] mapGrid = new int[][]
             {{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
                     {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
@@ -87,13 +90,18 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
     private Matrix currentMatrix = null;
     private Float zoomFactor = 1f;
     private GestureDetector gestureDetector;
-
+    private ScaleGestureDetector scaleGestureDetector;
+    private Float zoomX = 0f;
+    private Float zoomY = 0f;
+    float[] maxPointsMapped = new float[4];
+    
     public IBView(Context context, AttributeSet attrs) {
         super(context, attrs);
 
         SurfaceHolder holder = getHolder();
         
         gestureDetector = new GestureDetector(context, this);
+        scaleGestureDetector = new ScaleGestureDetector(context, this);
         setOnTouchListener(this);
         holder.addCallback(this);
         
@@ -172,7 +180,6 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
     	rectF.offset(-deltaX, -deltaY);
     	
         levelRect = correctScroll(currentMatrix, rectF);
-        validateRect();
 
         return false;
     }
@@ -192,14 +199,18 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
 		float mTop = rectPoints[1];
 		float mRight = rectPoints[2];
 		float mBottom = rectPoints[3];			
-		
-		if(mLeft > 0) {			
+				
+		if(rectLocal.width() < getWidth()) {
+			rectLocal.offsetTo((getWidth() - rectLocal.width()) / 2, rectLocal.top);
+		} else if(mLeft > 0) {			
 			rectLocal.offset(-(rectLocal.left - screenPoints[0]), 0);
 		} else if(mRight < getWidth()) {
 			rectLocal.offset(screenPoints[2] - rectLocal.right, 0);
 		}
 		
-		if(mTop > 0) {
+		if(rectLocal.height() < getHeight()) {
+			rectLocal.offsetTo(rectLocal.left, (getHeight() - rectLocal.height()) / 2);
+		} else if(mTop > 0) {
 			rectLocal.offset(0, -(rectLocal.top - screenPoints[1]));
 		} else if(mBottom < getHeight()) {
 			rectLocal.offset(0, screenPoints[3] - rectLocal.bottom);
@@ -247,6 +258,7 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
     @Override
     public boolean onTouch(View view, MotionEvent motionEvent) {
         gestureDetector.onTouchEvent(motionEvent);
+        scaleGestureDetector.onTouchEvent(motionEvent);
         return true;
     }
 
@@ -301,10 +313,20 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
         }
 
         public void doDraw(Canvas c, ArrayList<GameObject> drawableGameObjects) {
-            if(c == null) {
+            Matrix copy = null;
+        	
+            
+        	if(c == null) {
                 return;
             }
 
+        	c.save();
+        	c.scale(zoomFactor, zoomFactor, zoomX, zoomY);
+        	currentMatrix = c.getMatrix();
+        	copy = new Matrix(currentMatrix);
+        	copy.invert(copy);
+        	copy.mapPoints(maxPointsMapped);
+        	
             c.drawColor(Color.BLACK);
 
             int ballCount = 0;
@@ -315,6 +337,53 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
 
                 c.drawBitmap(gameObject.getBitmap(), gameObject.screenX, gameObject.screenY - deltaScreenY, null);
             }
+            
+            c.restore();
         }
     }
+
+	@Override
+	public boolean onScale(ScaleGestureDetector detector) {
+		float deltaSpan = detector.getCurrentSpan() - detector.getPreviousSpan();
+		float zoomRatio = zoomFactor;
+		Matrix testMatrix = new Matrix();
+		
+		zoomFactor = zoomFactor + deltaSpan / 100;
+		
+		if (zoomFactor < 1) {
+			zoomFactor = 1f;			
+		} else if (zoomFactor > 4) {
+			zoomFactor = 4f;
+		}
+		
+		zoomRatio = zoomFactor / zoomRatio;
+		
+		zoomX = detector.getFocusX();
+		zoomY = detector.getFocusY();
+		testMatrix.postScale(zoomFactor, zoomFactor, zoomX, zoomY);
+		levelRect = correctScroll(testMatrix, levelRect);
+		
+		return false;
+	}
+
+	@Override
+	public boolean onScaleBegin(ScaleGestureDetector detector) {
+		float deltaSpan = detector.getCurrentSpan() - detector.getPreviousSpan();
+		
+		zoomFactor = zoomFactor + deltaSpan / 100;
+		
+		if (zoomFactor < 1) {
+			zoomFactor = 1f;
+		} else if (zoomFactor > 4) {
+			zoomFactor = 4f;
+		}
+		
+		return true;
+	}
+
+	@Override
+	public void onScaleEnd(ScaleGestureDetector detector) {
+		// TODO Auto-generated method stub
+		
+	}
 }
