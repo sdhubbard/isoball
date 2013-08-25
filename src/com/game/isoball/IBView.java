@@ -93,6 +93,7 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
     private ScaleGestureDetector scaleGestureDetector;
     private Float zoomX = 0f;
     private Float zoomY = 0f;
+    private Float zoomSensitivity = .5f;
     float[] maxPointsMapped = new float[4];
     
     public IBView(Context context, AttributeSet attrs) {
@@ -344,7 +345,7 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
 
 	@Override
 	public boolean onScale(ScaleGestureDetector detector) {
-		float deltaSpan = detector.getCurrentSpan() - detector.getPreviousSpan();
+		float deltaSpan = (detector.getCurrentSpan() - detector.getPreviousSpan()) * zoomSensitivity;
 		float zoomRatio = zoomFactor;
 		Matrix testMatrix = new Matrix();
 		
