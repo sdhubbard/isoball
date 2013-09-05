@@ -11,6 +11,7 @@ import android.graphics.RectF;
 import android.os.Handler;
 import android.os.Message;
 import android.util.AttributeSet;
+import android.util.Log;
 import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
@@ -164,7 +165,56 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
 
     @Override
     public boolean onSingleTapUp(MotionEvent motionEvent) {
+    	float[] point = new float[]{motionEvent.getX(), motionEvent.getY(),
+    				0f, 0f};
+    	Matrix tapMatrix = new Matrix(currentMatrix);
+    	GameObject gameObject = null;
+    	
+    	tapMatrix.invert(tapMatrix);
+    	tapMatrix.mapPoints(point);
+    	
+    	gameObject = getGameObjectfromPoint((int)point[0], (int)point[0]);
+    	
+    	if(gameObject != null) {
+    		Log.d("TapUp", gameObject.toString());
+    	} else {
+    		Log.d("TapUp", "No object tapped");
+    	}
+    	
         return false;
+    }
+    
+    public GameObject getGameObjectfromPoint(float x, float y) {
+    	RectF currentRect = null;
+    	GameObject currentObject = null;
+    	Bitmap currentBitmap = null;
+    	int deltaX = 0;
+    	int deltaY = 0;
+    	
+    	for(int index = gameObjects.size() - 1; index >= 0; index--) {
+    		currentObject = gameObjects.get(index);
+    		currentBitmap = currentObject.getBitmap();
+    		
+    		currentRect = new RectF(currentObject.screenX, currentObject.screenY,
+    				currentBitmap.getWidth() + currentObject.screenX,
+    				currentBitmap.getHeight() + currentObject.screenY);
+    		
+    		if(!currentRect.contains(x, y)) {
+    			continue;
+    		}
+    		
+    		deltaX = (int)(x - currentObject.screenX);
+    		deltaY = (int)(y - currentObject.screenY);
+    		
+    		
+    		if(currentBitmap.getPixel(deltaX, deltaY) == Color.TRANSPARENT) {
+    			continue;
+    		}
+    		
+    		return currentObject;    		
+    	}
+    	
+    	return null;
     }
 
     @Override
@@ -201,7 +251,7 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
 		float mRight = rectPoints[2];
 		float mBottom = rectPoints[3];			
 				
-		if(rectLocal.width() < getWidth()) {
+		if(rectLocal.width() * zoomFactor < getWidth()) {
 			rectLocal.offsetTo((getWidth() - rectLocal.width()) / 2, rectLocal.top);
 		} else if(mLeft > 0) {			
 			rectLocal.offset(-(rectLocal.left - screenPoints[0]), 0);
@@ -209,7 +259,7 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
 			rectLocal.offset(screenPoints[2] - rectLocal.right, 0);
 		}
 		
-		if(rectLocal.height() < getHeight()) {
+		if(rectLocal.height() * zoomFactor < getHeight()) {
 			rectLocal.offsetTo(rectLocal.left, (getHeight() - rectLocal.height()) / 2);
 		} else if(mTop > 0) {
 			rectLocal.offset(0, -(rectLocal.top - screenPoints[1]));
@@ -221,7 +271,7 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
 	}	
 
     private void validateRect() {
-        if(levelRect.width() < getWidth()) {
+        if(levelRect.width() < getWidth() * zoomFactor) {
             levelRect.offsetTo((getWidth() - levelRect.width()) / 2, levelRect.top);
         } else {
             if(levelRect.right < getWidth()) {
@@ -233,7 +283,7 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
             }
         }
 
-        if(levelRect.height() < getHeight()) {
+        if(levelRect.height() < getHeight() * zoomFactor) {
             levelRect.offsetTo(levelRect.left,(getHeight() - levelRect.height()) / 2);
         } else {
             if(levelRect.bottom < getHeight()) {
