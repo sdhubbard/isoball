@@ -80,6 +80,7 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
             {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}};
 
     private IBThread thread;
+    private boolean paused = false;
     private RectF levelRect = null;
     private int standardItemHeight = 47;
     private int standardItemWidth = 42;
@@ -123,10 +124,8 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
                 gameObjects.add(gameTile);
             }
         }
-        
 
         generateLevelRect();
-        
     }
 
     private void generateLevelRect() {
@@ -173,14 +172,21 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
     	tapMatrix.invert(tapMatrix);
     	tapMatrix.mapPoints(point);
     	
-    	gameObject = getGameObjectfromPoint((int)point[0], (int)point[0]);
+    	thread.setPaused();
     	
-    	if(gameObject != null) {
-    		Log.d("TapUp", gameObject.toString());
+    	gameObject = getGameObjectfromPoint((int)point[0], (int)point[1]);
+    
+    	if(gameObject instanceof Ball) {
+    		Ball ball = (Ball)gameObject;    		
+    		Log.d("TapUp", "Ball type " + String.valueOf(ball.ballType) + " at " +
+    				String.valueOf(ball.tileX) + "," + String.valueOf(ball.tileY));
+    	} else if (gameObject != null) {
+    		Log.d("TapUp", gameObject.getClass().getName() + " tapped.");
     	} else {
     		Log.d("TapUp", "No object tapped");
     	}
     	
+    	thread.setUnpaused();    	
         return false;
     }
     
@@ -190,14 +196,14 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
     	Bitmap currentBitmap = null;
     	int deltaX = 0;
     	int deltaY = 0;
-    	
+
     	for(int index = gameObjects.size() - 1; index >= 0; index--) {
     		currentObject = gameObjects.get(index);
     		currentBitmap = currentObject.getBitmap();
     		
     		currentRect = new RectF(currentObject.screenX, currentObject.screenY,
     				currentBitmap.getWidth() + currentObject.screenX,
-    				currentBitmap.getHeight() + currentObject.screenY);
+    				(currentBitmap.getHeight() + currentObject.screenY));
     		
     		if(!currentRect.contains(x, y)) {
     			continue;
@@ -205,7 +211,6 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
     		
     		deltaX = (int)(x - currentObject.screenX);
     		deltaY = (int)(y - currentObject.screenY);
-    		
     		
     		if(currentBitmap.getPixel(deltaX, deltaY) == Color.TRANSPARENT) {
     			continue;
@@ -240,7 +245,6 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
 		Matrix invertMatrix = new Matrix();
 		float[] rectPoints = new float[] {rectLocal.left, rectLocal.top, rectLocal.right, rectLocal.bottom};
 		float[] screenPoints = new float[] {0,0, getWidth(), getHeight()};
-		
 		
 		matrix.mapPoints(rectPoints);
 		matrix.invert(invertMatrix);
@@ -313,8 +317,9 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
         return true;
     }
 
-    private class IBThread extends Thread {
-        private SurfaceHolder mSurfaceHolder;
+    private class IBThread extends Thread {    	
+    	private volatile boolean paused = false;
+        public SurfaceHolder mSurfaceHolder;
         private Handler mHandler;
         public boolean mRun = false;
         private Context context;
@@ -324,10 +329,19 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
 
             mSurfaceHolder = surfaceHolder;
         }
+        
+        public void setPaused() {
+        	paused = true;
+        }
+        
+        public void setUnpaused() {
+        	paused = false;
+        	synchronized (mSurfaceHolder) {
+				mSurfaceHolder.notifyAll();
+			}
+        }
 
         public void run() {
-        	
-        	
         	while (mRun) {
         		Canvas c = null;
 
@@ -353,6 +367,11 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
         				MapUtil.DepthSort(gameObjects);
         				doDraw(c, gameObjects);
         			}
+        			
+    				while(paused) {
+    						mSurfaceHolder.wait();
+        			}
+        			
         		} catch (Exception e) {
         			e.printStackTrace();
         		} finally {
