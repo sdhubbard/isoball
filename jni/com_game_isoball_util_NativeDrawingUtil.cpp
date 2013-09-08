@@ -42,8 +42,6 @@ JNIEXPORT jlongArray JNICALL Java_com_game_isoball_util_NativeDrawingUtil_DepthS
 		goVector.push_back(gameObject);
 	}
 
-
-
 	for(int index = 0; index < inputSize; index++) {
 		GameObject* gameObject = goVector[index];
 

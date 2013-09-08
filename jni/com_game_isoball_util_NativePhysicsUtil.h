@@ -5,8 +5,6 @@
 #ifndef _Included_com_game_isoball_util_NativePhysicsUtil
 #define _Included_com_game_isoball_util_NativePhysicsUtil
 #ifdef __cplusplus
-
-
 extern "C" {
 #endif
 /*
@@ -75,11 +73,12 @@ JNIEXPORT void JNICALL Java_com_game_isoball_util_NativePhysicsUtil_AddCircularL
 
 /*
  * Class:     com_game_isoball_util_NativePhysicsUtil
- * Method:    DepthSortGameObjects
- * Signature: ([Lcom/game/isoball/gameObjects/GameObject;)[J
+ * Method:    GetTouching
+ * Signature: (J)[J
  */
-JNIEXPORT jlongArray JNICALL Java_com_game_isoball_util_NativePhysicsUtil_DepthSortGameObjects
-  (JNIEnv *, jclass, jobjectArray);
+JNIEXPORT jlongArray JNICALL Java_com_game_isoball_util_NativePhysicsUtil_GetTouching
+  (JNIEnv *, jclass, jlong);
+
 
 #ifdef __cplusplus
 }

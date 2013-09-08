@@ -80,13 +80,13 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
             {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}};
 
     private IBThread thread;
-    private boolean paused = false;
     private RectF levelRect = null;
     private int standardItemHeight = 47;
     private int standardItemWidth = 42;
     private ArrayList<Ball> balls = new ArrayList<Ball>();
     private ArrayList<GameObject> gameObjects = new ArrayList<GameObject>();
-    private int sortDepth = 0;
+
+    private Ball selectedBall = null;
     
     //Panning and zoom variables
     private Matrix currentMatrix = null;
@@ -180,6 +180,7 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
     		Ball ball = (Ball)gameObject;    		
     		Log.d("TapUp", "Ball type " + String.valueOf(ball.ballType) + " at " +
     				String.valueOf(ball.tileX) + "," + String.valueOf(ball.tileY));
+    		selectedBall = ball;
     	} else if (gameObject != null) {
     		Log.d("TapUp", gameObject.getClass().getName() + " tapped.");
     	} else {
@@ -217,6 +218,35 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
     		}
     		
     		return currentObject;    		
+    	}
+    	
+    	return null;
+    }
+    
+    private void checkforSimiliarBallTypes(Ball ball, ArrayList<GameObject> similiarBalls) {
+    	long[] touchingIds = NativePhysicsUtil.GetTouching(ball.id);
+    	
+    	similiarBalls.add(ball);
+    	
+    	for(int index = 0; index < touchingIds.length; index++) {
+    		//Log.d("isoball", "Current Id is " +  String.valueOf(touchingIds[index]));
+    		GameObject gameObject = GetGameObjectById(touchingIds[index]);
+    		
+    		if(ball == null || similiarBalls.contains(gameObject) ||
+    				(gameObject instanceof Ball && ((Ball)gameObject).ballType != ball.ballType) ||
+    				!(gameObject instanceof Ball)) {
+    			continue;
+    		}
+    		
+    		checkforSimiliarBallTypes((Ball)gameObject, similiarBalls);
+    	}
+    }
+    
+    private GameObject GetGameObjectById(long id) {
+    	for(GameObject gameObject : gameObjects) {
+    		if(gameObject.id == id) {
+    			return gameObject;
+    		}
     	}
     	
     	return null;
@@ -349,7 +379,17 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
         			c = mSurfaceHolder.lockCanvas();
         			synchronized (mSurfaceHolder) {
         				float screenX = levelRect.left + (mapGrid.length * MapUtil.TILE_WIDTH * .5f);
-
+        				
+        				if(selectedBall != null) {
+        					ArrayList<GameObject> similiarBalls = new ArrayList<GameObject>();
+        					
+        					checkforSimiliarBallTypes(selectedBall, similiarBalls);
+        					
+        					Log.d("isoball", "Length of chain is " +  String.valueOf(similiarBalls.size()));
+        					
+        					selectedBall = null;
+        				}
+        				
         				for(GameEntity entity : MapUtil.entities) {
         					if(!entity.updateState()) {
         						continue;

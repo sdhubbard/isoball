@@ -4,6 +4,9 @@
 #include <jni.h>
 #include <Box2D.h>
 #include <map>
+#include <android/log.h>
+#include <vector>
+#include <exception>
 
 b2World* physicsWorld;
 std::map<jlong, b2Body*> bodyMap;
@@ -108,8 +111,49 @@ JNIEXPORT jobject JNICALL Java_com_game_isoball_util_NativePhysicsUtil_GetBallPo
 	return bPHolder;
 }
 
+JNIEXPORT jlongArray JNICALL Java_com_game_isoball_util_NativePhysicsUtil_GetTouching
+(JNIEnv *env, jclass, jlong id) {
+	b2Body* body = bodyMap[id];
+	std::vector<jlong> idVector;
+	b2ContactEdge *currentEdge = body->GetContactList();
+	jlongArray idArray;
 
+	//__android_log_print(ANDROID_LOG_DEBUG,"isoball","Iterating through edges.");
+	//__android_log_print(ANDROID_LOG_DEBUG,"isoball","Vector size is %d.",idVector.size());
+	while(currentEdge) {
+		for(std::map<jlong, b2Body*>::iterator iter = bodyMap.begin(); iter != bodyMap.end(); ++iter) {
+			//__android_log_print(ANDROID_LOG_DEBUG,"isoball","Iter first is %L",iter->first);
+			if(iter->second == body) {
+				continue;
+			}
 
+			if(iter->second == currentEdge->contact->GetFixtureA()->GetBody() ||
+					iter->second == currentEdge->contact->GetFixtureB()->GetBody()) {
+				//__android_log_print(ANDROID_LOG_DEBUG,"isoball","Iter first Match is %L", iter->first);
+				idVector.push_back(iter->first);
+				break;
+			}
+		}
 
+		currentEdge = currentEdge->next;
+	}
 
+	//__android_log_print(ANDROID_LOG_DEBUG,"isoball","Populating long Array.");
+	//__android_log_print(ANDROID_LOG_DEBUG,"isoball","Vector size is %d.",idVector.size());
 
+	if(idVector.size() == 0) {
+		idArray = (env)->NewLongArray(1);
+		//__android_log_print(ANDROID_LOG_DEBUG,"isoball","Returning Empty Array.");
+		return idArray;
+	}
+
+	idArray = (env)->NewLongArray(idVector.size());
+
+	for(int index = 0; index < idVector.size(); index++) {
+		jlong currentId = idVector.at(index);
+		//__android_log_print(ANDROID_LOG_DEBUG,"isoball","id is:%n", currentId);
+		(env)->SetLongArrayRegion(idArray,index,1, &currentId);
+	}
+	//__android_log_print(ANDROID_LOG_DEBUG,"isoball","Returning Long Array.");
+	return idArray;
+}

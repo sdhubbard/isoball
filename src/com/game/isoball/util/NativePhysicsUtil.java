@@ -1,7 +1,5 @@
 package com.game.isoball.util;
 
-import com.game.isoball.gameObjects.GameObject;
-
 public class NativePhysicsUtil {
 	static {
 		System.loadLibrary("IsoBall");
@@ -22,4 +20,6 @@ public class NativePhysicsUtil {
 	static public native void AddEdge(float startX, float startY, float endX, float endY);
 	
 	static public native void AddCircularLauncher(float tileX, float tileY);
+
+	static public native long[] GetTouching(long id);
 }
