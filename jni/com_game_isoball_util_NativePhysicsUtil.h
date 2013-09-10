@@ -79,6 +79,13 @@ JNIEXPORT void JNICALL Java_com_game_isoball_util_NativePhysicsUtil_AddCircularL
 JNIEXPORT jlongArray JNICALL Java_com_game_isoball_util_NativePhysicsUtil_GetTouching
   (JNIEnv *, jclass, jlong);
 
+/*
+ * Class:     com_game_isoball_util_NativePhysicsUtil
+ * Method:    RemoveBalls
+ * Signature: ([J)V
+ */
+JNIEXPORT void JNICALL Java_com_game_isoball_util_NativePhysicsUtil_RemoveBalls
+  (JNIEnv *, jclass, jlongArray);
 
 #ifdef __cplusplus
 }

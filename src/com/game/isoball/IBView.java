@@ -36,7 +36,7 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
         View.OnTouchListener,
         GestureDetector.OnGestureListener,
         OnScaleGestureListener {
-/*    private int[][] mapGrid = new int[][]
+    private int[][] mapGrid = new int[][]
             {{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
                     {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
                     {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
@@ -51,10 +51,10 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
                     {1,0,1,1,0,0,0,0,0,0,0,1,1,0,0,0,1},
                     {1,0,1,1,0,0,0,0,0,0,0,1,1,0,0,0,1},
                     {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-                    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}};*/
+                    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}};
 
 
-    private int[][] mapGrid = new int[][]
+/*    private int[][] mapGrid = new int[][]
            {{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
             {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
             {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
@@ -77,13 +77,13 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
             {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,2,0,0,0,1},
             {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
             {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}};
+            {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}};*/
 
     private IBThread thread;
     private RectF levelRect = null;
     private int standardItemHeight = 47;
+    private int minimumChainLength = 3;
     private int standardItemWidth = 42;
-    private ArrayList<Ball> balls = new ArrayList<Ball>();
     private ArrayList<GameObject> gameObjects = new ArrayList<GameObject>();
 
     private Ball selectedBall = null;
@@ -387,6 +387,11 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
         					
         					Log.d("isoball", "Length of chain is " +  String.valueOf(similiarBalls.size()));
         					
+        					if(similiarBalls.size() >= 3) {
+        						removeGameObjects(similiarBalls);
+        					}
+        					
+        					
         					selectedBall = null;
         				}
         				
@@ -422,7 +427,20 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
         	}
         }
 
-        public void doDraw(Canvas c, ArrayList<GameObject> drawableGameObjects) {
+        private void removeGameObjects(ArrayList<GameObject> similiarBalls) {
+			long[] idsToRemove = new long[similiarBalls.size()];
+			
+			for(int index = 0; index < similiarBalls.size(); index++) {
+				GameObject currentGameObject = similiarBalls.get(index);
+				
+				gameObjects.remove(currentGameObject);
+				idsToRemove[index] = currentGameObject.id;
+			}
+			
+			NativePhysicsUtil.RemoveBalls(idsToRemove);
+		}
+
+		public void doDraw(Canvas c, ArrayList<GameObject> drawableGameObjects) {
             Matrix copy = null;
         	
             

@@ -22,4 +22,6 @@ public class NativePhysicsUtil {
 	static public native void AddCircularLauncher(float tileX, float tileY);
 
 	static public native long[] GetTouching(long id);
+	
+	static public native void RemoveBalls(long[] ids);
 }

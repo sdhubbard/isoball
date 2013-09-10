@@ -157,3 +157,17 @@ JNIEXPORT jlongArray JNICALL Java_com_game_isoball_util_NativePhysicsUtil_GetTou
 	//__android_log_print(ANDROID_LOG_DEBUG,"isoball","Returning Long Array.");
 	return idArray;
 }
+
+JNIEXPORT void JNICALL Java_com_game_isoball_util_NativePhysicsUtil_RemoveBalls
+  (JNIEnv *env, jclass, jlongArray ids) {
+	int idSize = (env)->GetArrayLength(ids);
+
+	for(int index = 0; index < idSize; index++) {
+		jlong currentId = (env)->GetLongArrayElements(ids, false)[index];
+		b2Body* body = bodyMap[currentId];
+
+		bodyMap.erase(bodyMap.find(currentId));
+
+		physicsWorld->DestroyBody(body);
+	}
+}
