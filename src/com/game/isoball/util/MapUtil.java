@@ -1,7 +1,8 @@
 package com.game.isoball.util;
 
+import java.util.ArrayList;
+
 import android.graphics.PointF;
-import android.util.Log;
 
 import com.game.isoball.gameEntities.CircularLauncherMechanism;
 import com.game.isoball.gameEntities.GameEntity;
@@ -13,11 +14,6 @@ import com.game.isoball.gameObjects.GameObject;
 import com.game.isoball.gameObjects.GameTile;
 import com.game.isoball.gameObjects.RaisedTile;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashMap;
-
 /**
  * Created by Sean's Computer on 7/9/13.
  */
@@ -26,8 +22,8 @@ public class MapUtil {
     private static final int RAISED_TILE = 1;
     private static final int CIRCULAR_LAUNCHER_PLATE = 2;
 
-    public static final int TILE_DEPTH = 22;
-    public static final int TILE_WIDTH = 44;
+    public static final int TILE_DEPTH = 21;
+    public static final int TILE_WIDTH = 41;
 
     private static int sortDepth = 0;
     public static ArrayList<GameEntity> entities;

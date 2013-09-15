@@ -86,7 +86,7 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
     private int standardItemWidth = 42;
     private ArrayList<GameObject> gameObjects = new ArrayList<GameObject>();
 
-    private Ball selectedBall = null;
+    private float[] tapUpPoint = null;
     
     //Panning and zoom variables
     private Matrix currentMatrix = null;
@@ -164,31 +164,31 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
 
     @Override
     public boolean onSingleTapUp(MotionEvent motionEvent) {
-    	float[] point = new float[]{motionEvent.getX(), motionEvent.getY(),
-    				0f, 0f};
+    	Log.d("TapUp", "Starting onSingleTapUp");
     	Matrix tapMatrix = new Matrix(currentMatrix);
-    	GameObject gameObject = null;
+    	
+    	tapUpPoint = new float[]{motionEvent.getX(), motionEvent.getY(),
+				0f, 0f};
     	
     	tapMatrix.invert(tapMatrix);
-    	tapMatrix.mapPoints(point);
-    	
-    	thread.setPaused();
-    	
-    	gameObject = getGameObjectfromPoint((int)point[0], (int)point[1]);
+    	tapMatrix.mapPoints(tapUpPoint);
+        return false;
+    }
     
-    	if(gameObject instanceof Ball) {
-    		Ball ball = (Ball)gameObject;    		
-    		Log.d("TapUp", "Ball type " + String.valueOf(ball.ballType) + " at " +
-    				String.valueOf(ball.tileX) + "," + String.valueOf(ball.tileY));
-    		selectedBall = ball;
-    	} else if (gameObject != null) {
-    		Log.d("TapUp", gameObject.getClass().getName() + " tapped.");
-    	} else {
-    		Log.d("TapUp", "No object tapped");
+    public Ball getSelectedBall() {
+    	GameObject gameObject;
+    	
+    	if(tapUpPoint == null) {
+    		return null;
     	}
     	
-    	thread.setUnpaused();    	
-        return false;
+    	gameObject = getGameObjectfromPoint((int)tapUpPoint[0], (int)tapUpPoint[1]);
+        
+    	if(gameObject instanceof Ball) {
+    		return (Ball)gameObject;
+    	}
+    	
+    	return null;
     }
     
     public GameObject getGameObjectfromPoint(float x, float y) {
@@ -379,6 +379,9 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
         			c = mSurfaceHolder.lockCanvas();
         			synchronized (mSurfaceHolder) {
         				float screenX = levelRect.left + (mapGrid.length * MapUtil.TILE_WIDTH * .5f);
+        				Ball selectedBall = getSelectedBall();
+        				
+        				tapUpPoint = null;
         				
         				if(selectedBall != null) {
         					ArrayList<GameObject> similiarBalls = new ArrayList<GameObject>();
@@ -457,8 +460,6 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
         	
             c.drawColor(Color.BLACK);
 
-            int ballCount = 0;
-            
             for(GameObject gameObject : drawableGameObjects) {
                 Bitmap bitmap = gameObject.getBitmap();
                 int deltaScreenY = bitmap.getHeight() - standardItemHeight;
