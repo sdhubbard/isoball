@@ -4,5 +4,7 @@
     <string name="app_name">isoball</string>
     <string name="dummy_button">Dummy Button</string>
     <string name="dummy_content">DUMMY\nCONTENT</string>
+    <string name="game_over_title">Game Over!</string>
+    <string name="game_over_message">Game Over! Press OK to restart.</string>
 
 </resources>

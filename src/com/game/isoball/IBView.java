@@ -2,13 +2,18 @@ package com.game.isoball;
 
 import java.util.ArrayList;
 
+import android.app.AlertDialog;
+import android.app.AlertDialog.Builder;
+import android.app.Dialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.RectF;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.util.AttributeSet;
 import android.util.Log;
@@ -19,10 +24,12 @@ import android.view.ScaleGestureDetector.OnScaleGestureListener;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.widget.Button;
 
 import com.game.isoball.gameEntities.CircularLauncherMechanism;
 import com.game.isoball.gameEntities.GameEntity;
 import com.game.isoball.gameObjects.Ball;
+import com.game.isoball.gameObjects.FlatTile;
 import com.game.isoball.gameObjects.GameObject;
 import com.game.isoball.gameObjects.GameTile;
 import com.game.isoball.gameObjects.ImageMap;
@@ -35,7 +42,19 @@ import com.game.isoball.util.NativePhysicsUtil;
 public class IBView extends SurfaceView implements SurfaceHolder.Callback,
         View.OnTouchListener,
         GestureDetector.OnGestureListener,
-        OnScaleGestureListener {
+        OnScaleGestureListener,
+        Dialog.OnClickListener{
+	
+/*    private int[][] mapGrid = new int[][]
+            {{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
+                    {1,0,1,1,0,0,0,0,0,0,0,1,1,0,0,0,1},
+                    {1,0,1,1,0,0,2,2,2,0,0,1,1,0,0,0,1},
+                    {1,0,0,0,0,0,2,2,2,0,0,0,0,0,0,0,1},
+                    {1,0,0,0,0,0,2,2,2,0,0,0,0,0,0,0,1},
+                    {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
+                    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}};*/
+	
+	
     private int[][] mapGrid = new int[][]
             {{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
                     {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
@@ -85,7 +104,12 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
     private int minimumChainLength = 3;
     private int standardItemWidth = 42;
     private ArrayList<GameObject> gameObjects = new ArrayList<GameObject>();
-
+    private int maximumBallCount = 0;
+    private int currentBallCount = 0;
+    private boolean isGameOver = false;
+    private boolean reset = false;
+    private Handler ibThreadHandler = null;
+    
     private float[] tapUpPoint = null;
     
     //Panning and zoom variables
@@ -108,6 +132,7 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
         setOnTouchListener(this);
         holder.addCallback(this);
         
+        
         thread = new IBThread(holder, context, new Handler() {
             public void handleMessage(Message m) {
             }
@@ -118,7 +143,14 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
         NativePhysicsUtil.InitializeWorld();
         ImageMap.generateMap(getContext());
         gameObjects = MapUtil.generateTileGrid(mapGrid);
-
+        maximumBallCount = 0;
+        
+        for(GameObject gameObject : gameObjects) {
+        	if(gameObject instanceof FlatTile) {
+        		maximumBallCount++;
+        	}
+        }
+        
         for(GameEntity gameEntity : MapUtil.entities) {
             for(GameTile gameTile: gameEntity.raisedTiles) {
                 gameObjects.add(gameTile);
@@ -346,6 +378,25 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
         scaleGestureDetector.onTouchEvent(motionEvent);
         return true;
     }
+    
+    private void showGameOverMessage() {
+    	Runnable gameOverRunnable = new  Runnable() {
+			
+			@Override
+			public void run() {
+		    	AlertDialog.Builder builder = new AlertDialog.Builder(getContext());
+		    	
+		    	builder.setTitle(R.string.game_over_title);
+		    	builder.setMessage(R.string.game_over_message);
+		    	builder.setPositiveButton(android.R.string.ok, IBView.this);
+		    	builder.create().show();
+				
+			}
+		};
+    	
+    	
+		this.post(gameOverRunnable);
+    }
 
     private class IBThread extends Thread {    	
     	private volatile boolean paused = false;
@@ -372,9 +423,13 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
         }
 
         public void run() {
+        	Looper.prepare();
+        	
+        	ibThreadHandler = new Handler();
+        	
         	while (mRun) {
         		Canvas c = null;
-
+        		
         		try {
         			c = mSurfaceHolder.lockCanvas();
         			synchronized (mSurfaceHolder) {
@@ -382,37 +437,52 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
         				Ball selectedBall = getSelectedBall();
         				
         				tapUpPoint = null;
-        				
-        				if(selectedBall != null) {
-        					ArrayList<GameObject> similiarBalls = new ArrayList<GameObject>();
-        					
-        					checkforSimiliarBallTypes(selectedBall, similiarBalls);
-        					
-        					Log.d("isoball", "Length of chain is " +  String.valueOf(similiarBalls.size()));
-        					
-        					if(similiarBalls.size() >= 3) {
-        						removeGameObjects(similiarBalls);
-        					}
-        					
-        					
-        					selectedBall = null;
+
+        				if (reset) {
+        					restartGame();
         				}
         				
-        				for(GameEntity entity : MapUtil.entities) {
-        					if(!entity.updateState()) {
-        						continue;
+        				if(!isGameOver) {        				
+        					if(selectedBall != null) {
+        						ArrayList<GameObject> similiarBalls = new ArrayList<GameObject>();
+
+        						checkforSimiliarBallTypes(selectedBall, similiarBalls);
+
+        						Log.d("isoball", "Length of chain is " +  String.valueOf(similiarBalls.size()));
+
+        						if(similiarBalls.size() >= 3) {
+        							removeGameObjects(similiarBalls);
+        						}
+
+
+        						selectedBall = null;
         					}
 
-        					if(entity instanceof CircularLauncherMechanism) {
-        						Ball newBall = ((CircularLauncherMechanism)entity).getNewBall();
-        						
-        						gameObjects.add(newBall);
-        					}
+        					for(GameEntity entity : MapUtil.entities) {
+        						if(!entity.updateState()) {
+        							continue;
+        						}
+
+        						if(entity instanceof CircularLauncherMechanism) {
+        							Ball newBall = ((CircularLauncherMechanism)entity).getNewBall();
+
+        							gameObjects.add(newBall);
+        							currentBallCount++;
+
+        							if(currentBallCount > maximumBallCount) {
+        								isGameOver = true;
+        								showGameOverMessage();
+        							}
+
+        						}
+        					}        				
+
+
+        					NativePhysicsUtil.UpdateWorld();
+        					MapUtil.updateGameObjects(screenX, levelRect.top, gameObjects);
+        					MapUtil.DepthSort(gameObjects);
         				}
-
-        				NativePhysicsUtil.UpdateWorld();
-        				MapUtil.updateGameObjects(screenX, levelRect.top, gameObjects);
-        				MapUtil.DepthSort(gameObjects);
+        				
         				doDraw(c, gameObjects);
         			}
         			
@@ -428,9 +498,27 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
         			}
         		}
         	}
+        	
+        	Looper.myLooper().quit();
         }
+        
+    	private void restartGame() {
+    		ArrayList<GameObject> balls = new ArrayList<GameObject>();
+    		Log.d("isoball", "Restart Runnable called.");
+    		for (GameObject gameObject : gameObjects) {
 
-        private void removeGameObjects(ArrayList<GameObject> similiarBalls) {
+    			if(gameObject instanceof Ball) {
+    				balls.add(gameObject);
+    			}
+    		}
+
+    		thread.removeGameObjects(balls);
+    		currentBallCount = 0;
+    		isGameOver = false;
+    		reset = false;
+    	}
+
+        public void removeGameObjects(ArrayList<GameObject> similiarBalls) {
 			long[] idsToRemove = new long[similiarBalls.size()];
 			
 			for(int index = 0; index < similiarBalls.size(); index++) {
@@ -513,6 +601,19 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
 	@Override
 	public void onScaleEnd(ScaleGestureDetector detector) {
 		// TODO Auto-generated method stub
+		
+	}
+
+
+	
+	@Override
+	public void onClick(DialogInterface dialog, int which) {
+		switch(which) {
+		case DialogInterface.BUTTON_POSITIVE:
+			Log.d("isoball", "Restarting now");
+			reset = true;
+			break;
+		}
 		
 	}
 }
