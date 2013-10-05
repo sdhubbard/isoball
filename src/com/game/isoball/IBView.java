@@ -43,17 +43,7 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
         View.OnTouchListener,
         GestureDetector.OnGestureListener,
         OnScaleGestureListener,
-        Dialog.OnClickListener{
-	
-/*    private int[][] mapGrid = new int[][]
-            {{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
-                    {1,0,1,1,0,0,0,0,0,0,0,1,1,0,0,0,1},
-                    {1,0,1,1,0,0,2,2,2,0,0,1,1,0,0,0,1},
-                    {1,0,0,0,0,0,2,2,2,0,0,0,0,0,0,0,1},
-                    {1,0,0,0,0,0,2,2,2,0,0,0,0,0,0,0,1},
-                    {1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1},
-                    {1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}};*/
-	
+        Dialog.OnClickListener{	
 	
     private int[][] mapGrid = new int[][]
             {{1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1},
@@ -109,8 +99,6 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
     private boolean isGameOver = false;
     private boolean reset = false;
     private Handler ibThreadHandler = null;
-    
-    private float[] tapUpPoint = null;
     
     //Panning and zoom variables
     private Matrix currentMatrix = null;
@@ -198,81 +186,30 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
     public boolean onSingleTapUp(MotionEvent motionEvent) {
     	Log.d("TapUp", "Starting onSingleTapUp");
     	Matrix tapMatrix = new Matrix(currentMatrix);
-    	
-    	tapUpPoint = new float[]{motionEvent.getX(), motionEvent.getY(),
+    	float[] tapUpPoint = new float[]{motionEvent.getX(), motionEvent.getY(),
 				0f, 0f};
     	
     	tapMatrix.invert(tapMatrix);
     	tapMatrix.mapPoints(tapUpPoint);
+    	
+    	final float[] testPoint = tapUpPoint;
+    	
+    	Runnable testForBallRemoval = new Runnable() {
+			
+			@Override
+			public void run() {
+				thread.checkForBallForRemoval(testPoint);				
+			}
+		};
+		
+		ibThreadHandler.post(testForBallRemoval);
+    	
         return false;
     }
     
-    public Ball getSelectedBall() {
-    	GameObject gameObject;
-    	
-    	if(tapUpPoint == null) {
-    		return null;
-    	}
-    	
-    	gameObject = getGameObjectfromPoint((int)tapUpPoint[0], (int)tapUpPoint[1]);
-        
-    	if(gameObject instanceof Ball) {
-    		return (Ball)gameObject;
-    	}
-    	
-    	return null;
-    }
-    
-    public GameObject getGameObjectfromPoint(float x, float y) {
-    	RectF currentRect = null;
-    	GameObject currentObject = null;
-    	Bitmap currentBitmap = null;
-    	int deltaX = 0;
-    	int deltaY = 0;
 
-    	for(int index = gameObjects.size() - 1; index >= 0; index--) {
-    		currentObject = gameObjects.get(index);
-    		currentBitmap = currentObject.getBitmap();
-    		
-    		currentRect = new RectF(currentObject.screenX, currentObject.screenY,
-    				currentBitmap.getWidth() + currentObject.screenX,
-    				(currentBitmap.getHeight() + currentObject.screenY));
-    		
-    		if(!currentRect.contains(x, y)) {
-    			continue;
-    		}
-    		
-    		deltaX = (int)(x - currentObject.screenX);
-    		deltaY = (int)(y - currentObject.screenY);
-    		
-    		if(currentBitmap.getPixel(deltaX, deltaY) == Color.TRANSPARENT) {
-    			continue;
-    		}
-    		
-    		return currentObject;    		
-    	}
-    	
-    	return null;
-    }
     
-    private void checkforSimiliarBallTypes(Ball ball, ArrayList<GameObject> similiarBalls) {
-    	long[] touchingIds = NativePhysicsUtil.GetTouching(ball.id);
-    	
-    	similiarBalls.add(ball);
-    	
-    	for(int index = 0; index < touchingIds.length; index++) {
-    		//Log.d("isoball", "Current Id is " +  String.valueOf(touchingIds[index]));
-    		GameObject gameObject = GetGameObjectById(touchingIds[index]);
-    		
-    		if(ball == null || similiarBalls.contains(gameObject) ||
-    				(gameObject instanceof Ball && ((Ball)gameObject).ballType != ball.ballType) ||
-    				!(gameObject instanceof Ball)) {
-    			continue;
-    		}
-    		
-    		checkforSimiliarBallTypes((Ball)gameObject, similiarBalls);
-    	}
-    }
+    
     
     private GameObject GetGameObjectById(long id) {
     	for(GameObject gameObject : gameObjects) {
@@ -427,80 +364,181 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
         	
         	ibThreadHandler = new Handler();
         	
-        	while (mRun) {
-        		Canvas c = null;
-        		
-        		try {
-        			c = mSurfaceHolder.lockCanvas();
-        			synchronized (mSurfaceHolder) {
-        				float screenX = levelRect.left + (mapGrid.length * MapUtil.TILE_WIDTH * .5f);
-        				Ball selectedBall = getSelectedBall();
-        				
-        				tapUpPoint = null;
-
-        				if (reset) {
-        					restartGame();
-        				}
-        				
-        				if(!isGameOver) {        				
-        					if(selectedBall != null) {
-        						ArrayList<GameObject> similiarBalls = new ArrayList<GameObject>();
-
-        						checkforSimiliarBallTypes(selectedBall, similiarBalls);
-
-        						Log.d("isoball", "Length of chain is " +  String.valueOf(similiarBalls.size()));
-
-        						if(similiarBalls.size() >= 3) {
-        							removeGameObjects(similiarBalls);
-        						}
-
-
-        						selectedBall = null;
-        					}
-
-        					for(GameEntity entity : MapUtil.entities) {
-        						if(!entity.updateState()) {
-        							continue;
-        						}
-
-        						if(entity instanceof CircularLauncherMechanism) {
-        							Ball newBall = ((CircularLauncherMechanism)entity).getNewBall();
-
-        							gameObjects.add(newBall);
-        							currentBallCount++;
-
-        							if(currentBallCount > maximumBallCount) {
-        								isGameOver = true;
-        								showGameOverMessage();
-        							}
-
-        						}
-        					}        				
-
-
-        					NativePhysicsUtil.UpdateWorld();
-        					MapUtil.updateGameObjects(screenX, levelRect.top, gameObjects);
-        					MapUtil.DepthSort(gameObjects);
-        				}
-        				
-        				doDraw(c, gameObjects);
-        			}
-        			
-    				while(paused) {
-    						mSurfaceHolder.wait();
-        			}
-        			
-        		} catch (Exception e) {
-        			e.printStackTrace();
-        		} finally {
-        			if (c != null) {
-        				mSurfaceHolder.unlockCanvasAndPost(c);
-        			}
-        		}
+        	ibThreadHandler.post(new Runnable() {
+				@Override
+				public void run() {
+					loopGame();
+					
+					if (mRun) {
+						ibThreadHandler.post(this);
+					}
+				}
+			});
+        	
+        	Looper.loop();
+        }
+        
+        public Ball getSelectedBall(float[] testPoint) {
+        	GameObject gameObject;
+        	
+        	gameObject = getGameObjectfromPoint((int)testPoint[0], (int)testPoint[1]);
+            
+        	if(gameObject instanceof Ball) {
+        		return (Ball)gameObject;
         	}
         	
-        	Looper.myLooper().quit();
+        	return null;
         }
+        
+        public void checkForBallForRemoval(float[] point) {
+        	final float[] testPoint = point;
+        	
+        	Runnable removeBall = new Runnable() {
+				
+				@Override
+				public void run() {
+					
+					
+					Ball ballToCheck = getSelectedBall(testPoint);
+					
+					ArrayList<GameObject> similiarBalls = new ArrayList<GameObject>();
+
+					if (ballToCheck == null) {
+						return;
+					}
+					
+					checkforSimiliarBallTypes(ballToCheck, similiarBalls);
+
+					Log.d("isoball", "Length of chain is " +  String.valueOf(similiarBalls.size()));
+
+					if(similiarBalls.size() >= 3) {
+						removeGameObjects(similiarBalls);
+					}
+				}
+			};
+        	
+			ibThreadHandler.post(removeBall);
+        }
+        
+        public GameObject getGameObjectfromPoint(float x, float y) {
+        	RectF currentRect = null;
+        	GameObject currentObject = null;
+        	Bitmap currentBitmap = null;
+        	int deltaX = 0;
+        	int deltaY = 0;
+
+        	for(int index = gameObjects.size() - 1; index >= 0; index--) {
+        		currentObject = gameObjects.get(index);
+        		currentBitmap = currentObject.getBitmap();
+        		
+        		currentRect = new RectF(currentObject.screenX, currentObject.screenY,
+        				currentBitmap.getWidth() + currentObject.screenX,
+        				(currentBitmap.getHeight() + currentObject.screenY));
+        		
+        		if(!currentRect.contains(x, y)) {
+        			continue;
+        		}
+        		
+        		deltaX = (int)(x - currentObject.screenX);
+        		deltaY = (int)(y - currentObject.screenY);
+        		
+        		if(currentBitmap.getPixel(deltaX, deltaY) == Color.TRANSPARENT) {
+        			continue;
+        		}
+        		
+        		return currentObject;    		
+        	}
+        	
+        	return null;
+        }
+        
+        private void checkforSimiliarBallTypes(Ball ball, ArrayList<GameObject> similiarBalls) {
+        	long[] touchingIds = NativePhysicsUtil.GetTouching(ball.id);
+        	
+        	similiarBalls.add(ball);
+        	
+        	for(int index = 0; index < touchingIds.length; index++) {
+        		//Log.d("isoball", "Current Id is " +  String.valueOf(touchingIds[index]));
+        		GameObject gameObject = GetGameObjectById(touchingIds[index]);
+        		
+        		if(ball == null || similiarBalls.contains(gameObject) || gameObject == null ||
+        				(gameObject instanceof Ball && ((Ball)gameObject).ballType != ball.ballType) ||
+        				!(gameObject instanceof Ball)) {
+        			continue;
+        		}
+        		
+        		checkforSimiliarBallTypes((Ball)gameObject, similiarBalls);
+        	}
+        }
+    
+    	private void loopGame() {
+    		Canvas c = null;
+    		
+    		try {
+    			c = mSurfaceHolder.lockCanvas();
+    			synchronized (mSurfaceHolder) {
+    				float screenX = levelRect.left + (mapGrid.length * MapUtil.TILE_WIDTH * .5f);
+
+    				if (reset) {
+    					restartGame();
+    				}
+    				
+    				if(!isGameOver) {        				
+/*    					if(selectedBall != null) {
+    						ArrayList<GameObject> similiarBalls = new ArrayList<GameObject>();
+
+    						checkforSimiliarBallTypes(selectedBall, similiarBalls);
+
+    						Log.d("isoball", "Length of chain is " +  String.valueOf(similiarBalls.size()));
+
+    						if(similiarBalls.size() >= 3) {
+    							removeGameObjects(similiarBalls);
+    						}
+
+
+    						selectedBall = null;
+    					}*/
+
+    					for(GameEntity entity : MapUtil.entities) {
+    						if(!entity.updateState()) {
+    							continue;
+    						}
+
+    						if(entity instanceof CircularLauncherMechanism) {
+    							Ball newBall = ((CircularLauncherMechanism)entity).getNewBall();
+
+    							gameObjects.add(newBall);
+    							currentBallCount++;
+
+    							if(currentBallCount > maximumBallCount) {
+    								isGameOver = true;
+    								showGameOverMessage();
+    							}
+
+    						}
+    					}        				
+
+
+    					NativePhysicsUtil.UpdateWorld();
+    					MapUtil.updateGameObjects(screenX, levelRect.top, gameObjects);
+    					MapUtil.DepthSort(gameObjects);
+    				}
+    				
+    				doDraw(c, gameObjects);
+    			}
+    			
+				while(paused) {
+						mSurfaceHolder.wait();
+    			}
+    			
+    		} catch (Exception e) {
+    			e.printStackTrace();
+    		} finally {
+    			if (c != null) {
+    				mSurfaceHolder.unlockCanvasAndPost(c);
+    			}
+    		}    	
+    	}
         
     	private void restartGame() {
     		ArrayList<GameObject> balls = new ArrayList<GameObject>();
