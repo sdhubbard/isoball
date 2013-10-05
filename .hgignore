@@ -13,3 +13,7 @@ syntax: glob
 *.jar
 *.properties
 *.txt
+*.ap_
+R.java
+*.so
+*.so
