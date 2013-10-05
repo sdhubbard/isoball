@@ -22,8 +22,8 @@ public class MapUtil {
     private static final int RAISED_TILE = 1;
     private static final int CIRCULAR_LAUNCHER_PLATE = 2;
 
-    public static final int TILE_DEPTH = 21;
-    public static final int TILE_WIDTH = 41;
+    public static final int TILE_DEPTH = 22;
+    public static final int TILE_WIDTH = 44;
 
     private static int sortDepth = 0;
     public static ArrayList<GameEntity> entities;
