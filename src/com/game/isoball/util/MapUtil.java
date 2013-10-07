@@ -22,8 +22,8 @@ public class MapUtil {
     private static final int RAISED_TILE = 1;
     private static final int CIRCULAR_LAUNCHER_PLATE = 2;
 
-    public static final int TILE_DEPTH = 21;
-    public static final int TILE_WIDTH = 41;
+    public static final int TILE_DEPTH = 22;
+    public static final int TILE_WIDTH = 44;
 
     private static int sortDepth = 0;
     public static ArrayList<GameEntity> entities;
@@ -186,27 +186,5 @@ public class MapUtil {
                 (x * (TILE_DEPTH / 2));
 
         return new PointF(newX, newY);
-    }
-
-    private static void visitNode(GameObject gameObject) {
-        if (gameObject.isoVisitedFlag != 0 || gameObject instanceof FlatTile) {
-            return;
-        }
-
-        gameObject.isoVisitedFlag = 1;
-        final int behindSize = gameObject.gameObjectsBehind.size();
-
-        for(int index = 0; index < behindSize; ++index) {
-
-            if (gameObject.gameObjectsBehind.get(index) == null) {
-                break;
-            } else
-            {
-                visitNode(gameObject.gameObjectsBehind.get(index));
-                gameObject.gameObjectsBehind.set(index, null);
-            }
-        }
-
-        gameObject.isoDepth = sortDepth++;
     }
 }
