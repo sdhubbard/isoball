@@ -1,5 +1,6 @@
 package com.game.isoball;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
 import android.app.AlertDialog;
@@ -12,6 +13,7 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.RectF;
+import android.media.MediaPlayer;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -147,6 +149,22 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
 
         generateLevelRect();
     }
+    
+    @Override
+    protected void onDetachedFromWindow() {
+    	super.onDetachedFromWindow();
+    	
+    	Runnable mediaShutDown = new Runnable() {
+			
+			@Override
+			public void run() {
+				thread.shutDownMedia();
+				
+			}
+		};
+		
+		ibThreadHandler.post(mediaShutDown);
+    }
 
     private void generateLevelRect() {
         float rectWidth = (mapGrid.length + mapGrid[0].length) * MapUtil.TILE_WIDTH * .5f;
@@ -179,7 +197,7 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
 
     @Override
     public void onShowPress(MotionEvent motionEvent) {
-
+    	
     }
 
     @Override
@@ -206,11 +224,7 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
     	
         return false;
     }
-    
 
-    
-    
-    
     private GameObject GetGameObjectById(long id) {
     	for(GameObject gameObject : gameObjects) {
     		if(gameObject.id == id) {
@@ -341,26 +355,25 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
         private Handler mHandler;
         public boolean mRun = false;
         private Context context;
-
+        private MediaPlayer bgmPlayer;
+        
         public IBThread(SurfaceHolder surfaceHolder,Context context, Handler handler) {
             this.context = context;
 
             mSurfaceHolder = surfaceHolder;
         }
         
-        public void setPaused() {
-        	paused = true;
+        public void shutDownMedia() {
+        	bgmPlayer.release();
+        	bgmPlayer = null;
         }
         
-        public void setUnpaused() {
-        	paused = false;
-        	synchronized (mSurfaceHolder) {
-				mSurfaceHolder.notifyAll();
-			}
-        }
-
         public void run() {
         	Looper.prepare();
+        	bgmPlayer = MediaPlayer.create(context, R.raw.isoballs1e);
+        	bgmPlayer.setLooping(true);
+        	bgmPlayer.start();
+        	bgmPlayer.setVolume(.25f, .25f);
         	
         	ibThreadHandler = new Handler();
         	
