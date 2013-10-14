@@ -43,9 +43,9 @@ public class CircularLauncherMechanism extends GameEntity {
 
     private static final int[][] launcherDrawables = {
             {R.drawable.circular_launcher_0_0,
-            R.drawable.circular_launcher_0_1_t,
+            R.drawable.circular_launcher_0_1,
             R.drawable.circular_launcher_0_2},
-            {R.drawable.circular_launcher_1_0_t,
+            {R.drawable.circular_launcher_1_0,
             R.drawable.circular_launcher_1_1,
             R.drawable.circular_launcher_1_2},
             {R.drawable.circular_launcher_2_0,
