@@ -17,3 +17,4 @@ syntax: glob
 *R.java
 *.so
 *.so
+*bin\*
