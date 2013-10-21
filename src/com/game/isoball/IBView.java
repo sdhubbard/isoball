@@ -372,7 +372,7 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
         	Looper.prepare();
         	bgmPlayer = MediaPlayer.create(context, R.raw.isoballs1e);
         	bgmPlayer.setLooping(true);
-        	bgmPlayer.start();
+        	//bgmPlayer.start();
         	bgmPlayer.setVolume(.25f, .25f);
         	
         	ibThreadHandler = new Handler();
@@ -471,7 +471,7 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
         	similiarBalls.add(ball);
         	
         	for(int index = 0; index < touchingIds.length; index++) {
-        		//Log.d("isoball", "Current Id is " +  String.valueOf(touchingIds[index]));
+        		
         		GameObject gameObject = GetGameObjectById(touchingIds[index]);
         		
         		if(ball == null || similiarBalls.contains(gameObject) || gameObject == null ||
@@ -496,21 +496,7 @@ public class IBView extends SurfaceView implements SurfaceHolder.Callback,
     					restartGame();
     				}
     				
-    				if(!isGameOver) {        				
-/*    					if(selectedBall != null) {
-    						ArrayList<GameObject> similiarBalls = new ArrayList<GameObject>();
-
-    						checkforSimiliarBallTypes(selectedBall, similiarBalls);
-
-    						Log.d("isoball", "Length of chain is " +  String.valueOf(similiarBalls.size()));
-
-    						if(similiarBalls.size() >= 3) {
-    							removeGameObjects(similiarBalls);
-    						}
-
-
-    						selectedBall = null;
-    					}*/
+    				if(!isGameOver) {
 
     					for(GameEntity entity : MapUtil.entities) {
     						if(!entity.updateState()) {
