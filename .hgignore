@@ -17,3 +17,4 @@ syntax: glob
 *R.java
 *.so
 *bin\*
+.settings/org.eclipse.jdt.core.prefs
