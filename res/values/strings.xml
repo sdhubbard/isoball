@@ -6,5 +6,6 @@
     <string name="dummy_content">DUMMY\nCONTENT</string>
     <string name="game_over_title">Game Over!</string>
     <string name="game_over_message">Game Over! Press OK to restart.</string>
-
+    <string name="music_setting_key">music setting key</string>
+    <string name="sound_setting_key">sound setting key</string>
 </resources>
